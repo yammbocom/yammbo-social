@@ -1,0 +1,34 @@
+name = "yammbo-social"
+main = "src/index.ts"
+account_id = "9334bc9af459f2def598dcf32f9ef322"
+compatibility_date = "2026-01-15"
+compatibility_flags = ["nodejs_compat"]
+
+# Daily social post, Mon-Sat 09:00 UTC (same cron as the n8n workflow)
+[triggers]
+crons = ["0 9 * * 1-6"]
+
+# Temp image hosting (replaces /social-tmp on app.yammbo.com). The Worker
+# itself serves objects at /t/<file> so Meta can fetch them; a lifecycle rule
+# expires them after 1 day.
+[[r2_buckets]]
+binding = "SOCIAL_TMP"
+bucket_name = "yammbo-social-tmp"
+
+[vars]
+TELEGRAM_CHAT_ID = "7906560887"
+IG_BUSINESS_ID = "17841402099746896"
+FB_PAGE_ID = "101716175079765"
+IMAGEN_MODEL = "gemini-2.5-flash-image"
+GROQ_MODEL = "llama-3.3-70b-versatile"
+# Public base where the Worker serves temp images (Meta fetches from here).
+PUBLIC_BASE = "https://yammbo-social.yambo-es.workers.dev/t"
+
+# Secrets (wrangler secret put):
+# - GROQ_API_KEY        Bearer for Groq Llama 3.3
+# - GEMINI_API_KEY      x-goog-api-key for Imagen 4
+# - META_PAGE_TOKEN     Bearer for IG + FB Graph API (permanent page token)
+# - TELEGRAM_BOT_TOKEN  @yammbo_alerts_bot
+
+[observability]
+enabled = true

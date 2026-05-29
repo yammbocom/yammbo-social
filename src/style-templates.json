@@ -1,0 +1,548 @@
+{
+  "_meta": {
+    "validated_at": "2026-05-26",
+    "model": "imagen-4.0-ultra-generate-001",
+    "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-ultra-generate-001:predict",
+    "auth_header": "x-goog-api-key",
+    "default_params": {
+      "sampleCount": 1,
+      "aspectRatio": "1:1"
+    },
+    "story_params": {
+      "sampleCount": 1,
+      "aspectRatio": "9:16"
+    },
+    "global_negatives": "no buttons unless explicitly required by the style, no hashtag rendered in image, no AI-generated uncanny faces, no plastic skin texture, no malformed hands, no extra fingers, no AI-generated stock photo aesthetic, no generic SaaS template look, no rainbow colors, no over-saturated gradients, no watermarks, no Adobe Stock or Shutterstock vibe",
+    "design_principles": "Every image must look like the deliberate work of a senior human graphic designer — editorial restraint, intentional palette of 2-3 colors per image, specific real-world lighting (lens, surface, materials named), confident typography. The viewer should NOT be able to tell an AI generated it.",
+    "approved_styles_total": 7,
+    "text_density_levels": {
+      "sparse": {
+        "headline_words": "2-5",
+        "subline": false,
+        "body": false,
+        "reliability": "99%"
+      },
+      "medium": {
+        "headline_words": "4-8",
+        "subline": "8-14 words",
+        "body": false,
+        "reliability": "95%"
+      },
+      "rich": {
+        "headline_words": "4-8",
+        "subline": "8-14 words",
+        "body": "1-2 sentences + bullets",
+        "reliability": "75-80%"
+      }
+    }
+  },
+  "styles": {
+    "isometric_flat": {
+      "label": "Isometric flat illustration",
+      "vibe": "Linear/Notion marketing aesthetic, looks like a senior product illustrator drew it in Figma",
+      "best_density": [
+        "sparse"
+      ],
+      "palette_pools": [
+        {
+          "bg": "soft warm peach",
+          "accent": "deep coral red",
+          "text": "near-black"
+        },
+        {
+          "bg": "soft lavender purple",
+          "accent": "yellow/gold",
+          "text": "near-black"
+        },
+        {
+          "bg": "soft mint green",
+          "accent": "navy blue",
+          "text": "near-black"
+        },
+        {
+          "bg": "pale buttery yellow",
+          "accent": "burgundy",
+          "text": "near-black"
+        },
+        {
+          "bg": "dusty rose pink",
+          "accent": "forest green",
+          "text": "near-black"
+        }
+      ],
+      "prompt_template": "Square 1:1 social marketing graphic. {bg} background. Centered colorful flat isometric illustration of {subject_scene}. Vibrant deliberately-flat illustration with confident geometric shapes and subtle 2-color gradients, no photorealism, looks hand-drawn by a senior product illustrator in Figma. Above the illustration a bold {text_color} sans-serif headline reads '{HEADLINE}' in {n_lines} lines, large legible crisp typography with tight kerning. {subline_block} Below illustration a tiny line of text reads 'Yammbo {service}' and 'yammbo.com'. Editorial product illustration style with restrained palette (max 3 colors plus background). Critical: any device screens visible (laptop, tablet, smartphone) must show only an abstract soft glow or blurred content; do NOT render readable UI text, app icons, buttons, or interface elements inside any screen. AVOID: AI-generated artifacts, generic SaaS template look, rainbow colors, melted shapes, uncanny perspective.",
+      "subject_scenes": {
+        "Web": "a creative designer's desk seen from above-angle: a modern silver laptop open on the desk with screen showing simple abstract colorful blocks, no readable UI, a steaming coffee cup, a small monstera plant in a terracotta pot, a closed notebook, eyeglasses, a smartphone showing a small website preview",
+        "POS": "a small modern restaurant scene from above: a wooden table with a steaming coffee cup, a tablet showing a colorful order management dashboard with table numbers and dish list, a small plant in a pot, a credit card",
+        "Music": "a stylized music studio desk: a smartphone displaying a music streaming app, premium black headphones, a vinyl record on its sleeve, an espresso cup, a small audio mixer with knobs",
+        "Store": "a small ecommerce workspace from above: a laptop showing a product grid dashboard, a stack of small cardboard boxes with packing tape, a folded shirt tag, a coffee cup, scattered confetti dots",
+        "Bot": "a stylized communications hub from above: a laptop showing a conversation thread with chat bubbles, a smartphone with notification badges, abstract floating message icons connected by thin curved lines, a coffee cup, a small plant",
+        "Flow": "a workspace showing connected workflow elements: a laptop with multiple floating dashboard cards connected by thin curved lines representing automation, a coffee cup, a notebook, a small plant, abstract floating gear icons"
+      }
+    },
+    "claymation_3d": {
+      "label": "3D claymation render",
+      "vibe": "Stripe/Discord branding, looks like a Blender pro modeled and lit it",
+      "best_density": [
+        "sparse"
+      ],
+      "palette_pools": [
+        {
+          "bg": "soft sky blue gradient",
+          "accent": "pink and yellow soft pastels",
+          "text": "near-black"
+        },
+        {
+          "bg": "pastel mint gradient",
+          "accent": "coral and lavender pastels",
+          "text": "near-black"
+        },
+        {
+          "bg": "soft peach gradient",
+          "accent": "mint and sky blue pastels",
+          "text": "near-black"
+        },
+        {
+          "bg": "pale lilac gradient",
+          "accent": "yellow and cyan pastels",
+          "text": "near-black"
+        }
+      ],
+      "prompt_template": "Square 1:1 marketing graphic. {bg} background. Centered: stylized 3D rendered claymation-style scene with soft pastel colors and rounded matte shapes. {subject_scene}. All objects soft matte clay material with believable subsurface scattering, gentle global illumination, subtle contact shadows. Above the scene a bold {text_color} sans-serif headline reads '{HEADLINE}' in {n_lines} lines, large legible crisp typography. {subline_block} Tiny text 'Yammbo {service} · yammbo.com' at the bottom in dark gray. Premium SaaS marketing aesthetic, looks like a senior 3D artist modeled and rendered it in Blender. Critical: any device screens visible (laptop, tablet, smartphone) must show only an abstract soft glow or blurred content; do NOT render readable UI text, app icons, buttons, or interface elements inside any screen. AVOID: AI-melted shapes, plastic skin, uncanny faces, rainbow gradients, generic stock 3D illustrations.",
+      "subject_scenes": {
+        "Web": "A chubby cartoon-style 3D laptop with soft rounded edges floats in the center, screen displaying simple abstract colorful shapes. Around the laptop float: a 3D coffee cup with steam curls, a 3D pencil, a 3D speech bubble, a small 3D plant, a tiny 3D cursor pointer",
+        "POS": "A chubby 3D tablet floats in the center showing a colorful POS dashboard with rounded order tiles. Around it float: a 3D plate with food, a 3D coffee mug, a 3D credit card, a small 3D bell, a 3D receipt",
+        "Music": "A chubby 3D smartphone floats in the center with a softly glowing screen showing an abstract album-art shape. Around it float: a 3D vinyl record, 3D headphones, 3D speech notes, a 3D speaker, tiny 3D star bursts",
+        "Store": "A chubby 3D shopping bag in the center with items popping out. Around it float: a 3D credit card, a 3D shipping box, a 3D price tag, 3D coins, a small 3D smartphone",
+        "Bot": "A chubby 3D smartphone in the center showing a chat bubble icon. Around it float: 3D speech bubbles in pastel colors, a 3D heart reaction, a 3D message envelope, a 3D smiling avatar circle, a 3D notification bell",
+        "Flow": "A chubby 3D dashboard panel in the center showing connected workflow blocks. Around it float: 3D gears, a 3D arrow loop, 3D check marks, a 3D clock, a small 3D laptop, all linked by thin glowing lines"
+      }
+    },
+    "hand_drawn_character": {
+      "label": "Hand-drawn character illustration",
+      "vibe": "Linear/Notion editorial — Drawkit/Stubborn vector style, looks like a senior illustrator drew it",
+      "best_density": [
+        "sparse"
+      ],
+      "palette_pools": [
+        {
+          "bg": "warm cream paper-textured",
+          "accent": "red and forest green",
+          "text": "near-black"
+        },
+        {
+          "bg": "pale sage green",
+          "accent": "burnt orange and navy",
+          "text": "near-black"
+        },
+        {
+          "bg": "soft butter yellow",
+          "accent": "deep purple and pink",
+          "text": "near-black"
+        },
+        {
+          "bg": "dusty pink",
+          "accent": "teal and mustard",
+          "text": "near-black"
+        }
+      ],
+      "prompt_template": "Square 1:1 social marketing illustration. {bg} background. Modern hand-drawn vector illustration style with confident bold outlines and flat color fills, in the spirit of Drawkit / Stubborn / Humaaans / Linear's marketing site. Centered illustration: {subject_scene}. Modern flat character illustration, no photorealism, looks deliberately drawn by a senior illustrator. Layout: illustration occupies the right two-thirds; left third is a vertical text block with a magazine-editorial feel. Top-left bold {text_color} sans-serif headline reads '{HEADLINE}' in {n_lines} short lines. {subline_block} Bottom-left a red price-tag shape contains the text 'YAMMBO {SERVICE_UPPER}' in white, and below it the wordmark 'yammbo.com' in {text_color}. Editorial magazine layout, premium product illustration. Critical: any device screens visible (laptop, tablet, smartphone) must show only an abstract soft glow or blurred content; do NOT render readable UI text, app icons, buttons, or interface elements inside any screen. AVOID: uncanny faces, malformed hands, extra fingers, AI vector artifacts, generic SaaS template feel.",
+      "subject_scenes": {
+        "Web": "a friendly stylized designer character with glasses sitting at a desk, smiling, working on a laptop showing a colorful website builder, a coffee cup beside the laptop, a small plant on the desk",
+        "POS": "a friendly stylized chef in a white apron standing behind a small restaurant counter, smiling, holding a tablet horizontally that displays simple stylized colored blocks suggesting a dashboard, no readable text. Beside her a small plate of pasta and a mug of coffee",
+        "Music": "a stylized music lover wearing headphones, eyes closed enjoying music, holding a smartphone with stylized music symbols floating from the screen, with abstract music notes floating around",
+        "Store": "a friendly stylized small-business owner standing in front of a small shop counter, smiling, holding an open box, a clothing rack and shelves with products in the background, a smartphone showing a sales dashboard on the counter",
+        "Bot": "a relaxed stylized founder sitting in a chair, smiling, watching three floating chat-bubble cards labeled IG / FB / WA reply themselves on their own around him, a laptop on his lap showing a simple conversation thread, abstract message icons floating",
+        "Flow": "a relaxed stylized professional sitting in a chair with feet up, smiling, watching floating connected workflow cards do work automatically around them — a tablet on the lap shows a clean dashboard"
+      }
+    },
+    "saas_hero_shot": {
+      "label": "SaaS landing hero shot with device + UI",
+      "vibe": "Stripe/Linear/Notion landing page hero — split color block + realistic device mockup with confident readable interface",
+      "best_density": [
+        "sparse"
+      ],
+      "palette_pools": [
+        {
+          "bg": "deep royal blue solid",
+          "accent": "white text and white CTA button",
+          "text": "white"
+        },
+        {
+          "bg": "vibrant orange solid",
+          "accent": "white text and dark CTA button",
+          "text": "white"
+        },
+        {
+          "bg": "forest green solid",
+          "accent": "white text and white CTA button",
+          "text": "white"
+        },
+        {
+          "bg": "deep purple to magenta smooth gradient",
+          "accent": "white text and white CTA button",
+          "text": "white"
+        },
+        {
+          "bg": "matte charcoal black solid",
+          "accent": "warm orange text and orange CTA button",
+          "text": "warm orange"
+        },
+        {
+          "bg": "violet to soft pink smooth gradient",
+          "accent": "white text and white CTA button",
+          "text": "white"
+        }
+      ],
+      "prompt_template": "Square 1:1 SaaS landing-page hero shot graphic. Left half of the frame: solid {bg}. Right half: clean pale off-white background. On the left half, no other text besides: a bold {text_color} sans-serif headline reading '{HEADLINE}' in {n_lines} lines, large crisp typography with confident tracking, and below it a single rounded-rectangle CTA button reading '{cta_text}'. Do NOT add any supporting paragraph or subtitle on the left half. On the right half: realistic photoreal mockup of {device_scene}. The screens show a clean modern SaaS dashboard UI featuring these key elements only: {ui_labels}. Use real sans-serif UI typography with generous padding, light card surfaces, subtle shadows. Stripe/Linear/Notion landing aesthetic. Subtle drop shadow under devices. Bottom-right corner of the whole image: tiny 'yammbo.com' in {text_color} or dark gray. AVOID: long sentences inside the mockup, paragraphs of body text, typos in any text, malformed letters, fake-looking screens, AI-melted device edges, generic AI hero-shot vibe. TEXT RULE: every piece of text inside the device screen / dashboard must be sharp, correctly spelled and fully legible — real readable words, never gibberish.",
+      "cta_pool": {
+        "Web": [
+          "Build Your Site",
+          "Design Your Site",
+          "Launch Your Website"
+        ],
+        "POS": [
+          "Discover Yammbo POS",
+          "Run Your Restaurant",
+          "Get Started Free"
+        ],
+        "Music": [
+          "Start Listening",
+          "Stream Free",
+          "Open Yammbo Music"
+        ],
+        "Store": [
+          "Open Your Store",
+          "Sell Online",
+          "Start Selling"
+        ],
+        "Bot": [
+          "Try Yammbo Bot",
+          "Automate Your Replies",
+          "Connect Your Channels"
+        ],
+        "Flow": [
+          "Automate Your Business",
+          "Streamline Your Work",
+          "Try Yammbo Flow"
+        ]
+      },
+      "device_scenes": {
+        "Web": "a modern silver laptop centered, with a small smartphone in front-left and a small tablet in front-right, all three angled toward the viewer",
+        "POS": "a modern matte black tablet held in landscape orientation as the hero device, with a small smartphone next to it",
+        "Music": "a modern smartphone centered as the hero device, with a pair of black wireless headphones beside it",
+        "Store": "a modern silver laptop centered open toward the viewer, with a small smartphone in front showing a product card",
+        "Bot": "a modern smartphone centered as the hero device showing a chat conversation, with a small laptop behind showing an inbox view",
+        "Flow": "a modern silver laptop centered showing a workflow dashboard, with a small tablet next to it showing run history"
+      },
+      "ui_labels": {
+        "Web": "a 'Dashboard' heading, a big stat 'Revenue $12,450' with a green '+8.2%', and a small upward line chart. All text crisp and legible.",
+        "POS": "a 'Yammbo POS' heading, a grid of orange numbered table tiles '1' '2' '3' '4' '5' '6', and a stat 'Total $1,204'. All text crisp and legible.",
+        "Music": "a 'Now Playing' heading, a song title 'Quiet Rooms', a horizontal waveform bar and a timer '1:42'. All text crisp and legible.",
+        "Store": "a 'Catalog' heading, three product cards with price tags '$48' '$72' '$129' and a dark 'Add to Cart' button. All text crisp and legible.",
+        "Bot": "a chat inbox UI with an 'Inbox' heading, a gray chat bubble reading 'What are your hours?' and a green reply bubble reading \"We're open 9am-5pm!\", plus three small badges 'IG' 'FB' 'WA'. All text crisp and legible.",
+        "Flow": "a 'Flows' heading, connected node tiles labeled 'Trigger' 'Parse' 'Notify' 'Done', and a stat '184 runs'. All text crisp and legible."
+      }
+    },
+    "hero_diagonal": {
+      "label": "Diagonal color-block hero with UI mockup",
+      "vibe": "Bold solid color block cut on a diagonal + realistic product UI mockup — looks like a brand designer made a launch announcement",
+      "best_density": [
+        "sparse",
+        "medium"
+      ],
+      "palette_pools": [
+        {
+          "bg": "cobalt blue",
+          "accent": "white",
+          "text": "white"
+        },
+        {
+          "bg": "teal green",
+          "accent": "white",
+          "text": "white"
+        },
+        {
+          "bg": "warm orange",
+          "accent": "white",
+          "text": "white"
+        },
+        {
+          "bg": "deep violet",
+          "accent": "white",
+          "text": "white"
+        },
+        {
+          "bg": "charcoal black",
+          "accent": "warm orange",
+          "text": "white"
+        }
+      ],
+      "prompt_template": "Square 1:1 SaaS marketing graphic. Pale off-white background carrying a very subtle oversized watermark pattern of {service_lower} line-icons. A solid {bg} color block fills the upper-left region, its lower edge cut on a clean diagonal angle. Inside the color block: a bold {text_color} sans-serif headline reads '{HEADLINE}' in {n_lines} lines with tight confident tracking. {subline_block}and a single rounded-rectangle {accent} CTA button reading '{cta_text}'. Filling the lower-right area beyond the diagonal: a realistic photoreal app mockup — {device_scene} — its screen showing a clean modern SaaS UI featuring only: {ui_labels}. Real sans-serif UI typography, light card surfaces, generous padding, soft drop shadows, Stripe/Linear/Notion aesthetic. Tiny 'yammbo.com' in the bottom-right corner in dark gray. AVOID: long paragraphs inside the mockup, typos, malformed letters, melted device edges, generic AI hero-shot vibe. TEXT RULE: every piece of text inside the device screen / dashboard must be sharp, correctly spelled and fully legible — real readable words, never gibberish.",
+      "cta_pool": {
+        "Web": [
+          "Build Your Site",
+          "Design Your Site",
+          "Launch Your Website"
+        ],
+        "POS": [
+          "Discover Yammbo POS",
+          "Run Your Restaurant",
+          "Get Started Free"
+        ],
+        "Music": [
+          "Start Listening",
+          "Stream Free",
+          "Open Yammbo Music"
+        ],
+        "Store": [
+          "Open Your Store",
+          "Sell Online",
+          "Start Selling"
+        ],
+        "Bot": [
+          "Try Yammbo Bot",
+          "Automate Your Replies",
+          "Connect Your Channels"
+        ],
+        "Flow": [
+          "Automate Your Business",
+          "Streamline Your Work",
+          "Try Yammbo Flow"
+        ]
+      },
+      "device_scenes": {
+        "Web": "a modern silver laptop centered, with a small smartphone in front-left and a small tablet in front-right, all three angled toward the viewer",
+        "POS": "a modern matte black tablet held in landscape orientation as the hero device, with a small smartphone next to it",
+        "Music": "a modern smartphone centered as the hero device, with a pair of black wireless headphones beside it",
+        "Store": "a modern silver laptop centered open toward the viewer, with a small smartphone in front showing a product card",
+        "Bot": "a modern smartphone centered as the hero device showing a chat conversation, with a small laptop behind showing an inbox view",
+        "Flow": "a modern silver laptop centered showing a workflow dashboard, with a small tablet next to it showing run history"
+      },
+      "ui_labels": {
+        "Web": "a 'Dashboard' heading, a big stat 'Revenue $12,450' with a green '+8.2%', and a small upward line chart. All text crisp and legible.",
+        "POS": "a 'Yammbo POS' heading, a grid of orange numbered table tiles '1' '2' '3' '4' '5' '6', and a stat 'Total $1,204'. All text crisp and legible.",
+        "Music": "a 'Now Playing' heading, a song title 'Quiet Rooms', a horizontal waveform bar and a timer '1:42'. All text crisp and legible.",
+        "Store": "a 'Catalog' heading, three product cards with price tags '$48' '$72' '$129' and a dark 'Add to Cart' button. All text crisp and legible.",
+        "Bot": "a chat inbox UI with an 'Inbox' heading, a gray chat bubble reading 'What are your hours?' and a green reply bubble reading \"We're open 9am-5pm!\", plus three small badges 'IG' 'FB' 'WA'. All text crisp and legible.",
+        "Flow": "a 'Flows' heading, connected node tiles labeled 'Trigger' 'Parse' 'Notify' 'Done', and a stat '184 runs'. All text crisp and legible."
+      }
+    },
+    "hero_dark_accent": {
+      "label": "Dark-mode hero with accent headline + device",
+      "vibe": "Charcoal background, vibrant accent headline, dramatically lit device mockup — premium dark-mode product launch, Linear/Vercel feel",
+      "best_density": [
+        "sparse",
+        "medium"
+      ],
+      "palette_pools": [
+        {
+          "bg": "matte charcoal black",
+          "accent": "warm orange",
+          "text": "light gray"
+        },
+        {
+          "bg": "deep midnight navy",
+          "accent": "electric cyan",
+          "text": "light gray"
+        },
+        {
+          "bg": "near-black",
+          "accent": "lime green",
+          "text": "light gray"
+        },
+        {
+          "bg": "dark slate gray",
+          "accent": "hot magenta pink",
+          "text": "light gray"
+        },
+        {
+          "bg": "espresso brown-black",
+          "accent": "amber gold",
+          "text": "light gray"
+        }
+      ],
+      "prompt_template": "Square 1:1 SaaS marketing graphic on a solid {bg} dark background. Left side of the frame: a realistic photoreal app mockup angled into the frame — {device_scene} — its screen glowing with a clean modern SaaS UI featuring only: {ui_labels}. Real sans-serif UI typography, light card surfaces inside the screen, dramatic soft side lighting on the device. Right side of the frame: a large bold {accent} sans-serif headline reads '{HEADLINE}' in {n_lines} lines with confident tracking. {subline_block}Then a single rounded-rectangle {accent} CTA button reading '{cta_text}' in dark text. Premium dark-mode launch aesthetic, Stripe/Linear/Vercel vibe. Tiny 'yammbo.com' in the bottom-right corner in light gray. AVOID: long paragraphs inside the mockup, typos, malformed letters, melted device edges, generic AI hero-shot vibe. TEXT RULE: every piece of text inside the device screen / dashboard must be sharp, correctly spelled and fully legible — real readable words, never gibberish.",
+      "cta_pool": {
+        "Web": [
+          "Build Your Site",
+          "Design Your Site",
+          "Launch Your Website"
+        ],
+        "POS": [
+          "Discover Yammbo POS",
+          "Run Your Restaurant",
+          "Get Started Free"
+        ],
+        "Music": [
+          "Start Listening",
+          "Stream Free",
+          "Open Yammbo Music"
+        ],
+        "Store": [
+          "Open Your Store",
+          "Sell Online",
+          "Start Selling"
+        ],
+        "Bot": [
+          "Try Yammbo Bot",
+          "Automate Your Replies",
+          "Connect Your Channels"
+        ],
+        "Flow": [
+          "Automate Your Business",
+          "Streamline Your Work",
+          "Try Yammbo Flow"
+        ]
+      },
+      "device_scenes": {
+        "Web": "a modern silver laptop centered, with a small smartphone in front-left and a small tablet in front-right, all three angled toward the viewer",
+        "POS": "a modern matte black tablet held in landscape orientation as the hero device, with a small smartphone next to it",
+        "Music": "a modern smartphone centered as the hero device, with a pair of black wireless headphones beside it",
+        "Store": "a modern silver laptop centered open toward the viewer, with a small smartphone in front showing a product card",
+        "Bot": "a modern smartphone centered as the hero device showing a chat conversation, with a small laptop behind showing an inbox view",
+        "Flow": "a modern silver laptop centered showing a workflow dashboard, with a small tablet next to it showing run history"
+      },
+      "ui_labels": {
+        "Web": "a 'Dashboard' heading, a big stat 'Revenue $12,450' with a green '+8.2%', and a small upward line chart. All text crisp and legible.",
+        "POS": "a 'Yammbo POS' heading, a grid of orange numbered table tiles '1' '2' '3' '4' '5' '6', and a stat 'Total $1,204'. All text crisp and legible.",
+        "Music": "a 'Now Playing' heading, a song title 'Quiet Rooms', a horizontal waveform bar and a timer '1:42'. All text crisp and legible.",
+        "Store": "a 'Catalog' heading, three product cards with price tags '$48' '$72' '$129' and a dark 'Add to Cart' button. All text crisp and legible.",
+        "Bot": "a chat inbox UI with an 'Inbox' heading, a gray chat bubble reading 'What are your hours?' and a green reply bubble reading \"We're open 9am-5pm!\", plus three small badges 'IG' 'FB' 'WA'. All text crisp and legible.",
+        "Flow": "a 'Flows' heading, connected node tiles labeled 'Trigger' 'Parse' 'Notify' 'Done', and a stat '184 runs'. All text crisp and legible."
+      }
+    },
+    "hero_dashboard_float": {
+      "label": "Soft-gradient hero with floating dashboard + flow nodes",
+      "vibe": "Soft pastel gradient, bold headline, a floating dashboard card with real stats and small tiles linked by arrows — Stripe/Linear automation hero",
+      "best_density": [
+        "sparse",
+        "medium"
+      ],
+      "palette_pools": [
+        {
+          "bg": "lavender-to-white gradient",
+          "accent": "indigo",
+          "text": "near-black"
+        },
+        {
+          "bg": "mint-to-white gradient",
+          "accent": "teal",
+          "text": "near-black"
+        },
+        {
+          "bg": "peach-to-white gradient",
+          "accent": "coral red",
+          "text": "near-black"
+        },
+        {
+          "bg": "sky-blue-to-white gradient",
+          "accent": "royal blue",
+          "text": "near-black"
+        },
+        {
+          "bg": "lilac-to-white gradient",
+          "accent": "violet",
+          "text": "near-black"
+        }
+      ],
+      "prompt_template": "Square 1:1 SaaS marketing graphic. Smooth soft {bg} background fading to pale off-white toward the right. Upper-left region: a large bold {text_color} sans-serif headline reads '{HEADLINE}' in {n_lines} lines with confident tracking. {subline_block}Below it a single rounded-rectangle {accent} CTA button reading '{cta_text}' in white text. Right and lower region: a realistic photoreal dashboard card mockup tilted slightly in 3D space, plus two or three small floating rounded UI tiles connected by thin {accent} arrows suggesting an automated flow. The dashboard shows a clean modern SaaS UI featuring only: {ui_labels}. Real sans-serif UI typography, light card surfaces, subtle shadows, a small upward line chart. Stripe/Linear/Notion landing aesthetic. Tiny 'yammbo.com' wordmark in the bottom-right corner in dark gray. AVOID: long paragraphs inside the mockup, typos, malformed letters, melted edges, generic AI hero-shot vibe. TEXT RULE: every piece of text inside the device screen / dashboard must be sharp, correctly spelled and fully legible — real readable words, never gibberish.",
+      "cta_pool": {
+        "Web": [
+          "Build Your Site",
+          "Design Your Site",
+          "Launch Your Website"
+        ],
+        "POS": [
+          "Discover Yammbo POS",
+          "Run Your Restaurant",
+          "Get Started Free"
+        ],
+        "Music": [
+          "Start Listening",
+          "Stream Free",
+          "Open Yammbo Music"
+        ],
+        "Store": [
+          "Open Your Store",
+          "Sell Online",
+          "Start Selling"
+        ],
+        "Bot": [
+          "Try Yammbo Bot",
+          "Automate Your Replies",
+          "Connect Your Channels"
+        ],
+        "Flow": [
+          "Automate Your Business",
+          "Streamline Your Work",
+          "Try Yammbo Flow"
+        ]
+      },
+      "device_scenes": {
+        "Web": "a modern silver laptop centered, with a small smartphone in front-left and a small tablet in front-right, all three angled toward the viewer",
+        "POS": "a modern matte black tablet held in landscape orientation as the hero device, with a small smartphone next to it",
+        "Music": "a modern smartphone centered as the hero device, with a pair of black wireless headphones beside it",
+        "Store": "a modern silver laptop centered open toward the viewer, with a small smartphone in front showing a product card",
+        "Bot": "a modern smartphone centered as the hero device showing a chat conversation, with a small laptop behind showing an inbox view",
+        "Flow": "a modern silver laptop centered showing a workflow dashboard, with a small tablet next to it showing run history"
+      },
+      "ui_labels": {
+        "Web": "a 'Dashboard' heading, a big stat 'Revenue $12,450' with a green '+8.2%', and a small upward line chart. All text crisp and legible.",
+        "POS": "a 'Yammbo POS' heading, a grid of orange numbered table tiles '1' '2' '3' '4' '5' '6', and a stat 'Total $1,204'. All text crisp and legible.",
+        "Music": "a 'Now Playing' heading, a song title 'Quiet Rooms', a horizontal waveform bar and a timer '1:42'. All text crisp and legible.",
+        "Store": "a 'Catalog' heading, three product cards with price tags '$48' '$72' '$129' and a dark 'Add to Cart' button. All text crisp and legible.",
+        "Bot": "a chat inbox UI with an 'Inbox' heading, a gray chat bubble reading 'What are your hours?' and a green reply bubble reading \"We're open 9am-5pm!\", plus three small badges 'IG' 'FB' 'WA'. All text crisp and legible.",
+        "Flow": "a 'Flows' heading, connected node tiles labeled 'Trigger' 'Parse' 'Notify' 'Done', and a stat '184 runs'. All text crisp and legible."
+      }
+    }
+  },
+  "service_metadata": {
+    "Web": {
+      "url": "web.yammbo.com",
+      "tagline": "Drag-and-drop website builder with AI",
+      "audience": "freelancers, small businesses, founders without design skills"
+    },
+    "POS": {
+      "url": "pos.yammbo.com",
+      "tagline": "Restaurant POS with KDS, inventory, and tables",
+      "audience": "cafe owners, restaurants, food trucks"
+    },
+    "Music": {
+      "url": "music.yammbo.com",
+      "tagline": "Free music streaming with hybrid radio",
+      "audience": "music lovers, casual streamers"
+    },
+    "Store": {
+      "url": "store.yammbo.com",
+      "tagline": "Online storefront builder for ecommerce",
+      "audience": "small ecommerce owners, makers, dropshippers"
+    },
+    "Bot": {
+      "url": "yammbo.com/bot",
+      "tagline": "AI replies for Instagram, Facebook, and WhatsApp",
+      "audience": "small business owners, agencies, social media managers"
+    },
+    "Flow": {
+      "url": "flow.yammbo.com",
+      "tagline": "Workflow automation, simplified",
+      "audience": "founders, ops teams, busy professionals",
+      "_note": "NEVER mention n8n in any post or caption"
+    }
+  },
+  "round_robin": {
+    "Mon": "Web",
+    "Tue": "POS",
+    "Wed": "Music",
+    "Thu": "Store",
+    "Fri": "Bot",
+    "Sat": "Flow",
+    "Sun": null
+  },
+  "pillars": [
+    "feature",
+    "pain_point",
+    "tip",
+    "lifestyle"
+  ]
+}

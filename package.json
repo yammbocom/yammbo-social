@@ -1,0 +1,14 @@
+{
+  "name": "yammbo-social",
+  "private": true,
+  "description": "CF Worker: daily IG+FB+Telegram social post (replaces n8n social-publish-daily)",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260101.0",
+    "typescript": "^5.6.0"
+  }
+}
