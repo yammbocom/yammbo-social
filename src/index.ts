@@ -34,10 +34,16 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const rnd = <T>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
 
 // ───────────────────────── 1. pick service + style ─────────────────────────
-function pickContext(styleOverride?: string) {
+function pickContext(styleOverride?: string, serviceOverride?: string) {
   const dayShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getUTCDay()];
-  const service = tpl.round_robin[dayShort];
-  if (!service) throw new Error('No service scheduled for ' + dayShort);
+  const service =
+    serviceOverride && tpl.service_metadata[serviceOverride]
+      ? serviceOverride
+      : tpl.round_robin[dayShort];
+  if (!service)
+    throw new Error(
+      'No service scheduled for ' + dayShort + ' (pass ?service=Web|POS|Music|Store|Bot|Flow to override)'
+    );
 
   const styleKeys = Object.keys(tpl.styles);
   const styleKey = styleOverride && tpl.styles[styleOverride] ? styleOverride : rnd(styleKeys);
@@ -288,8 +294,8 @@ async function tgPhoto(env: Env, imageUrl: string, caption: string): Promise<voi
 }
 
 // ───────────────────────── main pipeline ─────────────────────────
-async function runDaily(env: Env, dryRun = false, styleOverride?: string): Promise<any> {
-  const d = pickContext(styleOverride);
+async function runDaily(env: Env, dryRun = false, styleOverride?: string, serviceOverride?: string): Promise<any> {
+  const d = pickContext(styleOverride, serviceOverride);
   console.log('STEP pick', d.service, d.styleKey, d.density);
   const copy = await generateCopy(env, d);
   console.log('STEP groq ok:', copy.headline);
@@ -360,8 +366,9 @@ export default {
       }
       const dry = url.searchParams.get('mode') !== 'real';
       const style = url.searchParams.get('style') || undefined;
+      const service = url.searchParams.get('service') || undefined;
       try {
-        const r = await runDaily(env, dry, style);
+        const r = await runDaily(env, dry, style, service);
         return new Response(JSON.stringify(r, null, 2), { headers: { 'content-type': 'application/json' } });
       } catch (e: any) {
         return new Response('error: ' + (e.message || e), { status: 500 });
@@ -378,6 +385,21 @@ export default {
         return new Response('fb story published ok\n', { status: 200 });
       } catch (e: any) {
         return new Response('fb story error: ' + (e.message || e), { status: 500 });
+      }
+    }
+
+    // Image POC: generate an arbitrary image (prompt + aspectRatio) to R2. For blog-cover experiments.
+    if (req.method === 'POST' && seg === 'imgtest') {
+      if (!env.RUN_KEY || req.headers.get('x-run-key') !== env.RUN_KEY) return new Response('forbidden', { status: 403 });
+      const body: any = await req.json().catch(() => ({}));
+      if (!body.prompt) return new Response('missing prompt', { status: 400 });
+      try {
+        const b64 = await callImagen(env, body.prompt, body.aspectRatio || '1:1');
+        const key = 'imgtest-' + Math.random().toString(36).slice(2, 9) + '.png';
+        const u = await uploadR2(env, key, b64);
+        return new Response(JSON.stringify({ url: u }, null, 2), { headers: { 'content-type': 'application/json' } });
+      } catch (e: any) {
+        return new Response('error: ' + (e.message || e), { status: 500 });
       }
     }
 
