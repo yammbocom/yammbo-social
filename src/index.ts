@@ -63,7 +63,7 @@ function pickContext(styleOverride?: string, serviceOverride?: string) {
 }
 
 // ───────────────────────── 2. build groq prompt ─────────────────────────
-function buildGroqPrompt(d: any) {
+function buildGroqPrompt(env: Env, d: any) {
   const sm = d.serviceMeta;
   const pillarBriefs: Record<string, string> = {
     feature: 'Highlight ONE concrete capability of the product. Be specific. Use numbers/details when natural.',
@@ -115,7 +115,7 @@ function buildGroqPrompt(d: any) {
   ].join('\n');
 
   return {
-    model: 'llama-3.3-70b-versatile',
+    model: env.GROQ_MODEL,
     temperature: 0.8,
     max_tokens: 500,
     messages: [
@@ -128,7 +128,7 @@ function buildGroqPrompt(d: any) {
 
 // ───────────────────────── 3. call groq + parse ─────────────────────────
 async function generateCopy(env: Env, d: any): Promise<any> {
-  const req = buildGroqPrompt(d);
+  const req = buildGroqPrompt(env, d);
   const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${env.GROQ_API_KEY}` },
