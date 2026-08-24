@@ -40,10 +40,7 @@ function pickContext(styleOverride?: string, serviceOverride?: string) {
     serviceOverride && tpl.service_metadata[serviceOverride]
       ? serviceOverride
       : tpl.round_robin[dayShort];
-  if (!service)
-    throw new Error(
-      'No service scheduled for ' + dayShort + ' (pass ?service=Web|POS|Music|Store|Bot|Flow to override)'
-    );
+  if (!service) return null;
 
   const styleKeys = Object.keys(tpl.styles);
   const styleKey = styleOverride && tpl.styles[styleOverride] ? styleOverride : rnd(styleKeys);
@@ -117,7 +114,12 @@ function buildGroqPrompt(env: Env, d: any) {
   return {
     model: env.GROQ_MODEL,
     temperature: 0.8,
-    max_tokens: 500,
+    // gpt-oss bills reasoning against max_tokens: at the default effort a rich
+    // post spent 1026 of 1269 tokens thinking and the JSON came back truncated,
+    // which Groq rejects with 400 json_validate_failed. Low effort plus the
+    // wider ceiling keeps a full post around 350 tokens.
+    max_tokens: 1000,
+    ...(/^openai\/gpt-oss/.test(env.GROQ_MODEL) ? { reasoning_effort: 'low' } : {}),
     messages: [
       { role: 'system', content: system },
       { role: 'user', content: user },
@@ -296,6 +298,12 @@ async function tgPhoto(env: Env, imageUrl: string, caption: string): Promise<voi
 // ───────────────────────── main pipeline ─────────────────────────
 async function runDaily(env: Env, dryRun = false, styleOverride?: string, serviceOverride?: string): Promise<any> {
   const d = pickContext(styleOverride, serviceOverride);
+  // Sunday has no service in the round robin. Cloudflare fires the cron anyway,
+  // and a day off is not a failure -- it used to throw and page Telegram weekly.
+  if (!d) {
+    console.log('STEP pick: no service scheduled today, skipping');
+    return { skipped: 'no service scheduled for today' };
+  }
   console.log('STEP pick', d.service, d.styleKey, d.density);
   const copy = await generateCopy(env, d);
   console.log('STEP groq ok:', copy.headline);
