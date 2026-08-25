@@ -12,7 +12,7 @@ tail_consumers = [{ service = "yammbo-tail" }]
 
 # Daily social post, Mon-Sat 09:00 UTC (same cron as the n8n workflow)
 [triggers]
-crons = ["0 9 * * 1-6"]
+crons = []  # DISABLED 2026-08-25 (user request): auto-publish a IG/FB pausado. Reactivar: crons = ["0 9 * * 1-6"]
 
 # Temp image hosting (replaces /social-tmp on app.yammbo.com). The Worker
 # itself serves objects at /t/<file> so Meta can fetch them; a lifecycle rule
