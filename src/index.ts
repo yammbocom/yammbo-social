@@ -204,9 +204,10 @@ function buildStoryPrompt(feedPrompt: string): string {
 }
 
 // ───────────────────────── 5. call imagen ─────────────────────────
-// Image generation via Gemini 2.5 Flash Image ("Nano Banana") — renders UI
-// text legibly (unlike Imagen 4 :predict). Same Gemini API key.
-async function callImagen(env: Env, prompt: string, aspectRatio: string): Promise<string> {
+// Image generation via Gemini 3.1 Flash Image ("Nano Banana 2"; 2.5 shuts down
+// 2026-10-02) — renders UI text legibly. Same Gemini API key. 3.1 answers JPEG
+// where 2.5 answered PNG, so the mime type travels with the bytes.
+async function callImagen(env: Env, prompt: string, aspectRatio: string): Promise<{ data: string; mime: string; ext: string }> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${env.IMAGEN_MODEL}:generateContent`;
   const resp = await fetch(url, {
     method: 'POST',
@@ -224,7 +225,9 @@ async function callImagen(env: Env, prompt: string, aspectRatio: string): Promis
     const fr = j?.candidates?.[0]?.finishReason || 'unknown';
     throw new Error('Image gen no image (finish=' + fr + '): ' + JSON.stringify(j).slice(0, 250));
   }
-  return img.inlineData.data as string;
+  const mime = String(img.inlineData.mimeType || 'image/png');
+  const ext = mime === 'image/jpeg' ? 'jpg' : mime === 'image/webp' ? 'webp' : 'png';
+  return { data: img.inlineData.data as string, mime, ext };
 }
 
 // ───────────────────────── 6. r2 upload ─────────────────────────
@@ -234,8 +237,8 @@ function b64ToBytes(b64: string): Uint8Array {
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
 }
-async function uploadR2(env: Env, key: string, b64: string): Promise<string> {
-  await env.SOCIAL_TMP.put(key, b64ToBytes(b64), { httpMetadata: { contentType: 'image/png' } });
+async function uploadR2(env: Env, key: string, b64: string, contentType: string): Promise<string> {
+  await env.SOCIAL_TMP.put(key, b64ToBytes(b64), { httpMetadata: { contentType } });
   return `${env.PUBLIC_BASE}/${key}`;
 }
 
@@ -310,16 +313,18 @@ async function runDaily(env: Env, dryRun = false, styleOverride?: string, servic
   const captionFull = (copy.caption || '').trim() + '\n\n' + (copy.hashtags || []).join(' ');
 
   const feedPrompt = buildFeedPrompt(d, copy);
-  const feedB64 = await callImagen(env, feedPrompt, '1:1');
+  const feed = await callImagen(env, feedPrompt, '1:1');
+  const feedB64 = feed.data;
   console.log('STEP imagen feed ok bytes:', feedB64.length);
-  const feedUrl = await uploadR2(env, `${d.runId}-feed.png`, feedB64);
+  const feedUrl = await uploadR2(env, `${d.runId}-feed.${feed.ext}`, feedB64, feed.mime);
   console.log('STEP r2 feed ok:', feedUrl);
 
   await sleep(3000); // space Imagen calls (rate limit ~5 QPM)
   const storyPrompt = buildStoryPrompt(feedPrompt);
-  const storyB64 = await callImagen(env, storyPrompt, '9:16');
+  const story = await callImagen(env, storyPrompt, '9:16');
+  const storyB64 = story.data;
   console.log('STEP imagen story ok bytes:', storyB64.length);
-  const storyUrl = await uploadR2(env, `${d.runId}-story.png`, storyB64);
+  const storyUrl = await uploadR2(env, `${d.runId}-story.${story.ext}`, storyB64, story.mime);
   console.log('STEP r2 story ok:', storyUrl);
 
   const result: any = { runId: d.runId, service: d.service, style: d.styleKey, headline: copy.headline, feedUrl, storyUrl, dryRun };
@@ -363,7 +368,7 @@ export default {
       const key = seg.slice(2);
       const obj = await env.SOCIAL_TMP.get(key);
       if (!obj) return new Response('not found', { status: 404 });
-      return new Response(obj.body, { headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' } });
+      return new Response(obj.body, { headers: { 'content-type': obj.httpMetadata?.contentType || 'image/png', 'cache-control': 'public, max-age=86400' } });
     }
     if (req.method === 'GET' && seg === '') return new Response('yammbo-social ok', { status: 200 });
 
@@ -402,9 +407,9 @@ export default {
       const body: any = await req.json().catch(() => ({}));
       if (!body.prompt) return new Response('missing prompt', { status: 400 });
       try {
-        const b64 = await callImagen(env, body.prompt, body.aspectRatio || '1:1');
-        const key = 'imgtest-' + Math.random().toString(36).slice(2, 9) + '.png';
-        const u = await uploadR2(env, key, b64);
+        const img = await callImagen(env, body.prompt, body.aspectRatio || '1:1');
+        const key = 'imgtest-' + Math.random().toString(36).slice(2, 9) + '.' + img.ext;
+        const u = await uploadR2(env, key, img.data, img.mime);
         return new Response(JSON.stringify({ url: u }, null, 2), { headers: { 'content-type': 'application/json' } });
       } catch (e: any) {
         return new Response('error: ' + (e.message || e), { status: 500 });
