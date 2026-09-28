@@ -415,6 +415,21 @@ export default {
       return new Response(JSON.stringify({ id, cancelled: !!c, published: !!p, sig: await adSig(env, id) }), { headers: { 'content-type': 'application/json' } });
     }
 
+    // Read-only audience/engagement snapshot for account decisions (x-run-key auth).
+    if (req.method === 'GET' && seg === 'meta-insights') {
+      if (!env.RUN_KEY || req.headers.get('x-run-key') !== env.RUN_KEY) return new Response('forbidden', { status: 403 });
+      const g = (p: string) => fetch(`https://graph.facebook.com/v21.0/${p}`, { headers: { authorization: `Bearer ${env.META_PAGE_TOKEN}` } }).then((r) => r.json());
+      const ig = env.IG_BUSINESS_ID;
+      const [acct, media, country, city, reach] = await Promise.all([
+        g(`${ig}?fields=username,followers_count,follows_count,media_count`),
+        g(`${ig}/media?fields=timestamp,like_count,comments_count,media_type&limit=30`),
+        g(`${ig}/insights?metric=follower_demographics&period=lifetime&metric_type=total_value&breakdown=country`),
+        g(`${ig}/insights?metric=follower_demographics&period=lifetime&metric_type=total_value&breakdown=city`),
+        g(`${ig}/insights?metric=reach&period=day&metric_type=total_value&since=${Math.floor(Date.now() / 1000) - 28 * 86400}&until=${Math.floor(Date.now() / 1000)}`),
+      ]);
+      return new Response(JSON.stringify({ acct, media, country, city, reach }, null, 1), { headers: { 'content-type': 'application/json' } });
+    }
+
     // Read-only health check of the Meta page token and linked accounts (x-run-key auth).
     if (req.method === 'GET' && seg === 'meta-check') {
       if (!env.RUN_KEY || req.headers.get('x-run-key') !== env.RUN_KEY) return new Response('forbidden', { status: 403 });
