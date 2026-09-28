@@ -242,6 +242,13 @@ async function uploadR2(env: Env, key: string, b64: string, contentType: string)
   return `${env.PUBLIC_BASE}/${key}`;
 }
 
+// Signature for the public "cancel" link: HMAC-SHA256(RUN_KEY, id), first 32 hex.
+async function adSig(env: Env, id: string): Promise<string> {
+  const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(env.RUN_KEY), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(id)));
+  return [...sig].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
+}
+
 // ───────────────────────── 7. meta publish ─────────────────────────
 async function metaPost(env: Env, path: string, params: Record<string, string>): Promise<any> {
   // params go in the BODY (form-encoded), not the query string — long captions
@@ -265,7 +272,7 @@ async function metaDelete(env: Env, id: string): Promise<void> {
   if (!resp.ok || j.error) throw new Error('Meta delete error: ' + JSON.stringify(j.error || j).slice(0, 200));
 }
 
-async function igPublish(env: Env, imageUrl: string, caption: string, isStory: boolean): Promise<void> {
+async function igPublish(env: Env, imageUrl: string, caption: string, isStory: boolean): Promise<string> {
   const params: Record<string, string> = { image_url: imageUrl };
   if (!isStory) params.caption = caption;
   if (isStory) params.media_type = 'STORIES';
@@ -279,7 +286,8 @@ async function igPublish(env: Env, imageUrl: string, caption: string, isStory: b
     if (st.status_code === 'FINISHED') break;
     if (st.status_code === 'ERROR') throw new Error('IG container error: ' + JSON.stringify(st));
   }
-  await metaPost(env, `${env.IG_BUSINESS_ID}/media_publish`, { creation_id: container.id });
+  const pub = await metaPost(env, `${env.IG_BUSINESS_ID}/media_publish`, { creation_id: container.id });
+  return pub.id as string;
 }
 
 // FB Page story: upload the photo unpublished, then publish it as a story.
@@ -386,6 +394,67 @@ export default {
       } catch (e: any) {
         return new Response('error: ' + (e.message || e), { status: 500 });
       }
+    }
+
+    // Cancel link from the Telegram preview: /cancel-ad?id=..&sig=.. (signed, no run-key:
+    // it opens in the owner's browser). Writes cancelled/<id>; /publish-ad refuses it.
+    if (req.method === 'GET' && seg === 'cancel-ad') {
+      const id = url.searchParams.get('id') || '';
+      if (!/^[\w-]{6,80}$/.test(id) || url.searchParams.get('sig') !== (await adSig(env, id))) return new Response('enlace no válido', { status: 403 });
+      const pub = await env.SOCIAL_TMP.head(`published/${id}`);
+      if (!pub) await env.SOCIAL_TMP.put(`cancelled/${id}`, new Date().toISOString());
+      const msg = pub ? 'Demasiado tarde: esta publicación ya salió.' : '✅ Publicación cancelada. No se subirá nada.';
+      return new Response(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><body style="font:600 20px system-ui;padding:40px;text-align:center">${msg}</body>`, { headers: { 'content-type': 'text/html; charset=utf-8' } });
+    }
+
+    // Status of a scheduled ad for the VPS (x-run-key auth).
+    if (req.method === 'GET' && seg === 'ad-status') {
+      if (!env.RUN_KEY || req.headers.get('x-run-key') !== env.RUN_KEY) return new Response('forbidden', { status: 403 });
+      const id = url.searchParams.get('id') || '';
+      const [c, p] = await Promise.all([env.SOCIAL_TMP.head(`cancelled/${id}`), env.SOCIAL_TMP.head(`published/${id}`)]);
+      return new Response(JSON.stringify({ id, cancelled: !!c, published: !!p, sig: await adSig(env, id) }), { headers: { 'content-type': 'application/json' } });
+    }
+
+    // Read-only health check of the Meta page token and linked accounts (x-run-key auth).
+    if (req.method === 'GET' && seg === 'meta-check') {
+      if (!env.RUN_KEY || req.headers.get('x-run-key') !== env.RUN_KEY) return new Response('forbidden', { status: 403 });
+      const g = (p: string) => fetch(`https://graph.facebook.com/v21.0/${p}`, { headers: { authorization: `Bearer ${env.META_PAGE_TOKEN}` } }).then((r) => r.json());
+      const page: any = await g(`${env.FB_PAGE_ID}?fields=id,name`);
+      const ig: any = await g(`${env.IG_BUSINESS_ID}?fields=id,username,website,followers_count`);
+      const lim: any = await g(`${env.IG_BUSINESS_ID}/content_publishing_limit?fields=quota_usage,config`);
+      return new Response(JSON.stringify({ page, ig, publishingLimit: lim }, null, 2), { headers: { 'content-type': 'application/json' } });
+    }
+
+    // Publish a ready-made ad from the VPS ad factory (x-run-key auth).
+    // Body: { id, caption, feed_b64, story_b64 } — JPEG base64 (IG accepts JPEG only).
+    // Order: IG feed (the post that matters), then IG story, then FB story; a story
+    // failure is reported but does not undo the feed. FB feed arrives through the
+    // page's IG->FB cross-post, as with the daily run. A marker in R2 refuses a
+    // second publish of the same id (the VPS job can be re-run by hand).
+    if (req.method === 'POST' && seg === 'publish-ad') {
+      if (!env.RUN_KEY || req.headers.get('x-run-key') !== env.RUN_KEY) return new Response('forbidden', { status: 403 });
+      const b: any = await req.json().catch(() => ({}));
+      if (!b.id || !/^[\w-]{6,80}$/.test(b.id) || !b.caption || !b.feed_b64 || !b.story_b64) return new Response('missing id/caption/feed_b64/story_b64', { status: 400 });
+      const dry = url.searchParams.get('mode') !== 'real';
+      const marker = `published/${b.id}`;
+      if (!dry && (await env.SOCIAL_TMP.head(marker))) return new Response(JSON.stringify({ error: 'already published', id: b.id }), { status: 409, headers: { 'content-type': 'application/json' } });
+      if (await env.SOCIAL_TMP.head(`cancelled/${b.id}`)) return new Response(JSON.stringify({ error: 'cancelled', id: b.id }), { status: 409, headers: { 'content-type': 'application/json' } });
+      const out: any = { id: b.id, dry };
+      try {
+        out.feedUrl = await uploadR2(env, `ad-${b.id}-feed.jpg`, b.feed_b64, 'image/jpeg');
+        out.storyUrl = await uploadR2(env, `ad-${b.id}-story.jpg`, b.story_b64, 'image/jpeg');
+        if (dry) return new Response(JSON.stringify(out, null, 2), { headers: { 'content-type': 'application/json' } });
+        await env.SOCIAL_TMP.put(marker, new Date().toISOString());   // before posting: a retry must not double-post
+        const mediaId = await igPublish(env, out.feedUrl, b.caption, false);
+        const pl: any = await fetch(`https://graph.facebook.com/v21.0/${mediaId}?fields=permalink`, { headers: { authorization: `Bearer ${env.META_PAGE_TOKEN}` } }).then((r) => r.json());
+        out.igFeed = { id: mediaId, permalink: pl.permalink || null };
+      } catch (e: any) {
+        out.error = 'feed: ' + (e.message || e);
+        return new Response(JSON.stringify(out, null, 2), { status: 500, headers: { 'content-type': 'application/json' } });
+      }
+      try { out.igStory = await igPublish(env, out.storyUrl, '', true); } catch (e: any) { out.igStoryError = String(e.message || e).slice(0, 300); }
+      try { await fbStory(env, out.storyUrl); out.fbStory = 'ok'; } catch (e: any) { out.fbStoryError = String(e.message || e).slice(0, 300); }
+      return new Response(JSON.stringify(out, null, 2), { headers: { 'content-type': 'application/json' } });
     }
 
     // FB story test: publish a page story from an existing R2 image (x-run-key auth)
