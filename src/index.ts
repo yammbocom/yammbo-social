@@ -25,6 +25,7 @@ export interface Env {
   GROQ_MODEL: string;
   PUBLIC_BASE: string;
   RUN_KEY: string;
+  GROWTH_KEY?: string;   // yammbo-server's own key: growth posts + ad-status only, revocable on its own
 }
 
 type Tpl = typeof templates;
@@ -242,6 +243,13 @@ async function uploadR2(env: Env, key: string, b64: string, contentType: string)
   return `${env.PUBLIC_BASE}/${key}`;
 }
 
+// RUN_KEY (VPS) or GROWTH_KEY (yammbo-server). GROWTH_KEY opens only the growth-post
+// routes and /ad-status, never /run or /publish-ad.
+function growthAuthed(req: Request, env: Env): boolean {
+  const k = req.headers.get('x-run-key');
+  return !!k && ((!!env.RUN_KEY && k === env.RUN_KEY) || (!!env.GROWTH_KEY && env.GROWTH_KEY.length >= 32 && k === env.GROWTH_KEY));
+}
+
 // Signature for the public "cancel" link: HMAC-SHA256(RUN_KEY, id), first 32 hex.
 async function adSig(env: Env, id: string): Promise<string> {
   const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(env.RUN_KEY), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
@@ -442,7 +450,7 @@ export default {
 
     // Status of a scheduled ad for the VPS (x-run-key auth).
     if (req.method === 'GET' && seg === 'ad-status') {
-      if (!env.RUN_KEY || req.headers.get('x-run-key') !== env.RUN_KEY) return new Response('forbidden', { status: 403 });
+      if (!growthAuthed(req, env)) return new Response('forbidden', { status: 403 });
       const id = url.searchParams.get('id') || '';
       const [c, p] = await Promise.all([env.SOCIAL_TMP.head(`cancelled/${id}`), env.SOCIAL_TMP.head(`published/${id}`)]);
       return new Response(JSON.stringify({ id, cancelled: !!c, published: !!p, sig: await adSig(env, id) }), { headers: { 'content-type': 'application/json' } });
@@ -512,7 +520,7 @@ export default {
     //   net   ig | fb — one network per call, each with its own published/<id>-<net> marker.
     // cancelled/<id> (from /cancel-ad, same signed link as the ads) refuses both networks.
     if (req.method === 'PUT' && seg === 'post-image') {
-      if (!env.RUN_KEY || req.headers.get('x-run-key') !== env.RUN_KEY) return new Response('forbidden', { status: 403 });
+      if (!growthAuthed(req, env)) return new Response('forbidden', { status: 403 });
       const id = url.searchParams.get('id') || '', n = Number(url.searchParams.get('n'));
       if (!/^[\w-]{6,80}$/.test(id) || !(n >= 1 && n <= 10)) return new Response('bad id/n', { status: 400 });
       const buf = await req.arrayBuffer();
@@ -522,7 +530,7 @@ export default {
       return new Response(JSON.stringify({ url: `${env.PUBLIC_BASE}/post-${id}-${n}.jpg`, bytes: buf.byteLength }), { headers: { 'content-type': 'application/json' } });
     }
     if (req.method === 'POST' && seg === 'publish-post') {
-      if (!env.RUN_KEY || req.headers.get('x-run-key') !== env.RUN_KEY) return new Response('forbidden', { status: 403 });
+      if (!growthAuthed(req, env)) return new Response('forbidden', { status: 403 });
       const b: any = await req.json().catch(() => ({}));
       const j = (o: any, status = 200) => new Response(JSON.stringify(o, null, 2), { status, headers: { 'content-type': 'application/json' } });
       const n = Number(b.n);
