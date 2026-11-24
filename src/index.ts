@@ -297,6 +297,37 @@ async function fbStory(env: Env, imageUrl: string): Promise<void> {
   await metaPost(env, `${env.FB_PAGE_ID}/photo_stories`, { photo_id: photo.id });
 }
 
+// ───────────────────────── 7b. carousel / multi-photo (ported from yammboshop-social) ─────────────────────────
+async function igWaitFinished(env: Env, id: string, tries = 8): Promise<void> {
+  for (let i = 0; i < tries; i++) {
+    await sleep(4000);
+    const st: any = await fetch(`https://graph.facebook.com/v21.0/${id}?fields=status_code`, { headers: { authorization: `Bearer ${env.META_PAGE_TOKEN}` } }).then((r) => r.json());
+    if (st.status_code === 'FINISHED') return;
+    if (st.status_code === 'ERROR') throw new Error('IG container error: ' + JSON.stringify(st).slice(0, 200));
+  }
+  throw new Error('IG container not FINISHED in time: ' + id);
+}
+async function igCarousel(env: Env, urls: string[], caption: string): Promise<string> {
+  const children: string[] = [];
+  for (const u of urls) children.push((await metaPost(env, `${env.IG_BUSINESS_ID}/media`, { image_url: u, is_carousel_item: 'true' })).id);
+  for (const c of children) await igWaitFinished(env, c);
+  const box = await metaPost(env, `${env.IG_BUSINESS_ID}/media`, { media_type: 'CAROUSEL', children: children.join(','), caption });
+  await igWaitFinished(env, box.id);
+  return (await metaPost(env, `${env.IG_BUSINESS_ID}/media_publish`, { creation_id: box.id })).id as string;
+}
+// FB page post with one or more photos: upload unpublished, then attach to one feed post.
+async function fbPhotos(env: Env, urls: string[], message: string): Promise<string> {
+  const ids: string[] = [];
+  for (const u of urls) ids.push((await metaPost(env, `${env.FB_PAGE_ID}/photos`, { url: u, published: 'false' })).id);
+  const p: Record<string, string> = { message };
+  ids.forEach((id, i) => (p[`attached_media[${i}]`] = JSON.stringify({ media_fbid: id })));
+  return (await metaPost(env, `${env.FB_PAGE_ID}/feed`, p)).id as string;
+}
+async function igPermalink(env: Env, id: string): Promise<string | null> {
+  const j: any = await fetch(`https://graph.facebook.com/v21.0/${id}?fields=permalink`, { headers: { authorization: `Bearer ${env.META_PAGE_TOKEN}` } }).then((r) => r.json());
+  return j.permalink || null;
+}
+
 // ───────────────────────── 8. telegram mirror ─────────────────────────
 async function tgPhoto(env: Env, imageUrl: string, caption: string): Promise<void> {
   await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendPhoto`, {
@@ -401,9 +432,11 @@ export default {
     if (req.method === 'GET' && seg === 'cancel-ad') {
       const id = url.searchParams.get('id') || '';
       if (!/^[\w-]{6,80}$/.test(id) || url.searchParams.get('sig') !== (await adSig(env, id))) return new Response('enlace no válido', { status: 403 });
-      const pub = await env.SOCIAL_TMP.head(`published/${id}`);
-      if (!pub) await env.SOCIAL_TMP.put(`cancelled/${id}`, new Date().toISOString());
-      const msg = pub ? 'Demasiado tarde: esta publicación ya salió.' : '✅ Publicación cancelada. No se subirá nada.';
+      const pub = (await env.SOCIAL_TMP.head(`published/${id}`)) || (await env.SOCIAL_TMP.head(`published/${id}-ig`));
+      const fbDone = await env.SOCIAL_TMP.head(`published/${id}-fb`);
+      const partial = !!pub && !fbDone && !(await env.SOCIAL_TMP.head(`published/${id}`));   // growth post: IG out, FB not yet
+      if (!pub || partial) await env.SOCIAL_TMP.put(`cancelled/${id}`, new Date().toISOString());
+      const msg = partial ? 'Instagram ya salió; Facebook queda cancelado.' : pub ? 'Demasiado tarde: esta publicación ya salió.' : '✅ Publicación cancelada. No se subirá nada.';
       return new Response(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><body style="font:600 20px system-ui;padding:40px;text-align:center">${msg}</body>`, { headers: { 'content-type': 'text/html; charset=utf-8' } });
     }
 
@@ -470,6 +503,60 @@ export default {
       try { out.igStory = await igPublish(env, out.storyUrl, '', true); } catch (e: any) { out.igStoryError = String(e.message || e).slice(0, 300); }
       try { await fbStory(env, out.storyUrl); out.fbStory = 'ok'; } catch (e: any) { out.fbStoryError = String(e.message || e).slice(0, 300); }
       return new Response(JSON.stringify(out, null, 2), { headers: { 'content-type': 'application/json' } });
+    }
+
+    // Growth studio posts (x-run-key auth). Two steps keep each call small (body size,
+    // 50-subrequest cap): 1) PUT /post-image?id=&n= with the raw JPEG of slide n;
+    // 2) POST /publish-post?mode=dry|real {id, kind, n, caption, net}.
+    //   kind  carousel (n=2..10) | single (n=1) | story (n=1)
+    //   net   ig | fb — one network per call, each with its own published/<id>-<net> marker.
+    // cancelled/<id> (from /cancel-ad, same signed link as the ads) refuses both networks.
+    if (req.method === 'PUT' && seg === 'post-image') {
+      if (!env.RUN_KEY || req.headers.get('x-run-key') !== env.RUN_KEY) return new Response('forbidden', { status: 403 });
+      const id = url.searchParams.get('id') || '', n = Number(url.searchParams.get('n'));
+      if (!/^[\w-]{6,80}$/.test(id) || !(n >= 1 && n <= 10)) return new Response('bad id/n', { status: 400 });
+      const buf = await req.arrayBuffer();
+      const head = new Uint8Array(buf.slice(0, 3));
+      if (buf.byteLength < 1000 || buf.byteLength > 8_000_000 || head[0] !== 0xff || head[1] !== 0xd8) return new Response('expected a JPEG body', { status: 400 });
+      await env.SOCIAL_TMP.put(`post-${id}-${n}.jpg`, buf, { httpMetadata: { contentType: 'image/jpeg' } });
+      return new Response(JSON.stringify({ url: `${env.PUBLIC_BASE}/post-${id}-${n}.jpg`, bytes: buf.byteLength }), { headers: { 'content-type': 'application/json' } });
+    }
+    if (req.method === 'POST' && seg === 'publish-post') {
+      if (!env.RUN_KEY || req.headers.get('x-run-key') !== env.RUN_KEY) return new Response('forbidden', { status: 403 });
+      const b: any = await req.json().catch(() => ({}));
+      const j = (o: any, status = 200) => new Response(JSON.stringify(o, null, 2), { status, headers: { 'content-type': 'application/json' } });
+      const n = Number(b.n);
+      if (!b.id || !/^[\w-]{6,80}$/.test(b.id) || !['carousel', 'single', 'story'].includes(b.kind) || !['ig', 'fb'].includes(b.net)) return j({ error: 'bad id/kind/net' }, 400);
+      // IG carousel: each slide costs a create + a status poll; 8 keeps the worst case well under the 50-subrequest cap
+      if (b.kind === 'carousel' ? !(n >= 2 && n <= (b.net === 'ig' ? 8 : 10)) : n !== 1) return j({ error: 'bad n for kind' }, 400);
+      if (b.kind !== 'story' && !b.caption) return j({ error: 'missing caption' }, 400);
+      const dry = url.searchParams.get('mode') !== 'real';
+      const marker = `published/${b.id}-${b.net}`;
+      if (await env.SOCIAL_TMP.head(`cancelled/${b.id}`)) return j({ error: 'cancelled', id: b.id }, 409);
+      if (!dry && (await env.SOCIAL_TMP.head(marker))) return j({ error: 'already published', id: b.id, net: b.net }, 409);
+      const urls = Array.from({ length: n }, (_, i) => `${env.PUBLIC_BASE}/post-${b.id}-${i + 1}.jpg`);
+      const have = new Set((await env.SOCIAL_TMP.list({ prefix: `post-${b.id}-` })).objects.map((o) => o.key));   // one call, not one head per slide
+      const missing = urls.map((_, i) => i + 1).filter((k) => !have.has(`post-${b.id}-${k}.jpg`));
+      const out: any = { id: b.id, kind: b.kind, net: b.net, dry, urls };
+      if (missing.length) return j({ ...out, error: 'images not uploaded', missing }, 400);
+      if (dry) return j(out);
+      await env.SOCIAL_TMP.put(marker, new Date().toISOString());   // before posting: a retry must not double-post
+      try {
+        if (b.net === 'ig') {
+          const mid = b.kind === 'carousel' ? await igCarousel(env, urls, b.caption) : await igPublish(env, urls[0], b.caption || '', b.kind === 'story');
+          out.ig = { id: mid, permalink: b.kind === 'story' ? null : await igPermalink(env, mid) };
+        } else if (b.kind === 'story') {
+          await fbStory(env, urls[0]); out.fb = 'story ok';
+        } else {
+          const pid = await fbPhotos(env, urls, b.caption);
+          out.fb = { id: pid, permalink: `https://www.facebook.com/${pid}` };
+        }
+        await env.SOCIAL_TMP.put(`${marker}.json`, JSON.stringify(out));
+        return j(out);
+      } catch (e: any) {
+        out.error = String(e.message || e).slice(0, 400);   // marker stays: check the account before retrying by hand
+        return j(out, 500);
+      }
     }
 
     // FB story test: publish a page story from an existing R2 image (x-run-key auth)
