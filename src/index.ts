@@ -258,10 +258,13 @@ async function adSig(env: Env, id: string): Promise<string> {
 }
 
 // ───────────────────────── 7. meta publish ─────────────────────────
+// One place for the Graph version: v21.0 is removed on 2027-01-21 (Graph API changelog).
+const GRAPH = 'https://graph.facebook.com/v26.0';
+
 async function metaPost(env: Env, path: string, params: Record<string, string>): Promise<any> {
   // params go in the BODY (form-encoded), not the query string — long captions
   // (~900 chars + hashtags) overflow the URL and Meta rejects with code 1.
-  const resp = await fetch(`https://graph.facebook.com/v21.0/${path}`, {
+  const resp = await fetch(`${GRAPH}/${path}`, {
     method: 'POST',
     headers: { authorization: `Bearer ${env.META_PAGE_TOKEN}`, 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams(params),
@@ -272,7 +275,7 @@ async function metaPost(env: Env, path: string, params: Record<string, string>):
 }
 
 async function metaDelete(env: Env, id: string): Promise<void> {
-  const resp = await fetch(`https://graph.facebook.com/v21.0/${id}`, {
+  const resp = await fetch(`${GRAPH}/${id}`, {
     method: 'DELETE',
     headers: { authorization: `Bearer ${env.META_PAGE_TOKEN}` },
   });
@@ -280,15 +283,16 @@ async function metaDelete(env: Env, id: string): Promise<void> {
   if (!resp.ok || j.error) throw new Error('Meta delete error: ' + JSON.stringify(j.error || j).slice(0, 200));
 }
 
-async function igPublish(env: Env, imageUrl: string, caption: string, isStory: boolean): Promise<string> {
+async function igPublish(env: Env, imageUrl: string, caption: string, isStory: boolean, alt = ''): Promise<string> {
   const params: Record<string, string> = { image_url: imageUrl };
   if (!isStory) params.caption = caption;
+  if (!isStory && alt) params.alt_text = alt;   // IG: images only, not stories
   if (isStory) params.media_type = 'STORIES';
   const container = await metaPost(env, `${env.IG_BUSINESS_ID}/media`, params);
   // poll container status until FINISHED (max ~40s)
   for (let i = 0; i < 10; i++) {
     await sleep(4000);
-    const st = await fetch(`https://graph.facebook.com/v21.0/${container.id}?fields=status_code`, {
+    const st = await fetch(`${GRAPH}/${container.id}?fields=status_code`, {
       headers: { authorization: `Bearer ${env.META_PAGE_TOKEN}` },
     }).then((r) => r.json() as any);
     if (st.status_code === 'FINISHED') break;
@@ -309,15 +313,19 @@ async function fbStory(env: Env, imageUrl: string): Promise<void> {
 async function igWaitFinished(env: Env, id: string, tries = 8): Promise<void> {
   for (let i = 0; i < tries; i++) {
     await sleep(4000);
-    const st: any = await fetch(`https://graph.facebook.com/v21.0/${id}?fields=status_code`, { headers: { authorization: `Bearer ${env.META_PAGE_TOKEN}` } }).then((r) => r.json());
+    const st: any = await fetch(`${GRAPH}/${id}?fields=status_code`, { headers: { authorization: `Bearer ${env.META_PAGE_TOKEN}` } }).then((r) => r.json());
     if (st.status_code === 'FINISHED') return;
     if (st.status_code === 'ERROR') throw new Error('IG container error: ' + JSON.stringify(st).slice(0, 200));
   }
   throw new Error('IG container not FINISHED in time: ' + id);
 }
-async function igCarousel(env: Env, urls: string[], caption: string): Promise<string> {
+async function igCarousel(env: Env, urls: string[], caption: string, alts: string[] = []): Promise<string> {
   const children: string[] = [];
-  for (const u of urls) children.push((await metaPost(env, `${env.IG_BUSINESS_ID}/media`, { image_url: u, is_carousel_item: 'true' })).id);
+  for (const [i, u] of urls.entries()) {
+    const p: Record<string, string> = { image_url: u, is_carousel_item: 'true' };
+    if (alts[i]) p.alt_text = alts[i];
+    children.push((await metaPost(env, `${env.IG_BUSINESS_ID}/media`, p)).id);
+  }
   for (const c of children) await igWaitFinished(env, c);
   const box = await metaPost(env, `${env.IG_BUSINESS_ID}/media`, { media_type: 'CAROUSEL', children: children.join(','), caption });
   await igWaitFinished(env, box.id);
@@ -332,7 +340,7 @@ async function fbPhotos(env: Env, urls: string[], message: string): Promise<stri
   return (await metaPost(env, `${env.FB_PAGE_ID}/feed`, p)).id as string;
 }
 async function igPermalink(env: Env, id: string): Promise<string | null> {
-  const j: any = await fetch(`https://graph.facebook.com/v21.0/${id}?fields=permalink`, { headers: { authorization: `Bearer ${env.META_PAGE_TOKEN}` } }).then((r) => r.json());
+  const j: any = await fetch(`${GRAPH}/${id}?fields=permalink`, { headers: { authorization: `Bearer ${env.META_PAGE_TOKEN}` } }).then((r) => r.json());
   return j.permalink || null;
 }
 
@@ -459,7 +467,7 @@ export default {
     // Read-only audience/engagement snapshot for account decisions (x-run-key auth).
     if (req.method === 'GET' && seg === 'meta-insights') {
       if (!env.RUN_KEY || req.headers.get('x-run-key') !== env.RUN_KEY) return new Response('forbidden', { status: 403 });
-      const g = (p: string) => fetch(`https://graph.facebook.com/v21.0/${p}`, { headers: { authorization: `Bearer ${env.META_PAGE_TOKEN}` } }).then((r) => r.json());
+      const g = (p: string) => fetch(`${GRAPH}/${p}`, { headers: { authorization: `Bearer ${env.META_PAGE_TOKEN}` } }).then((r) => r.json());
       const ig = env.IG_BUSINESS_ID;
       const [acct, media, country, city, reach] = await Promise.all([
         g(`${ig}?fields=username,followers_count,follows_count,media_count`),
@@ -474,7 +482,7 @@ export default {
     // Read-only health check of the Meta page token and linked accounts (x-run-key auth).
     if (req.method === 'GET' && seg === 'meta-check') {
       if (!env.RUN_KEY || req.headers.get('x-run-key') !== env.RUN_KEY) return new Response('forbidden', { status: 403 });
-      const g = (p: string) => fetch(`https://graph.facebook.com/v21.0/${p}`, { headers: { authorization: `Bearer ${env.META_PAGE_TOKEN}` } }).then((r) => r.json());
+      const g = (p: string) => fetch(`${GRAPH}/${p}`, { headers: { authorization: `Bearer ${env.META_PAGE_TOKEN}` } }).then((r) => r.json());
       const page: any = await g(`${env.FB_PAGE_ID}?fields=id,name`);
       const ig: any = await g(`${env.IG_BUSINESS_ID}?fields=id,username,website,followers_count`);
       const lim: any = await g(`${env.IG_BUSINESS_ID}/content_publishing_limit?fields=quota_usage,config`);
@@ -502,7 +510,7 @@ export default {
         if (dry) return new Response(JSON.stringify(out, null, 2), { headers: { 'content-type': 'application/json' } });
         await env.SOCIAL_TMP.put(marker, new Date().toISOString());   // before posting: a retry must not double-post
         const mediaId = await igPublish(env, out.feedUrl, b.caption, false);
-        const pl: any = await fetch(`https://graph.facebook.com/v21.0/${mediaId}?fields=permalink`, { headers: { authorization: `Bearer ${env.META_PAGE_TOKEN}` } }).then((r) => r.json());
+        const pl: any = await fetch(`${GRAPH}/${mediaId}?fields=permalink`, { headers: { authorization: `Bearer ${env.META_PAGE_TOKEN}` } }).then((r) => r.json());
         out.igFeed = { id: mediaId, permalink: pl.permalink || null };
       } catch (e: any) {
         out.error = 'feed: ' + (e.message || e);
@@ -545,13 +553,15 @@ export default {
       const urls = Array.from({ length: n }, (_, i) => `${env.PUBLIC_BASE}/post-${b.id}-${i + 1}.jpg`);
       const have = new Set((await env.SOCIAL_TMP.list({ prefix: `post-${b.id}-` })).objects.map((o) => o.key));   // one call, not one head per slide
       const missing = urls.map((_, i) => i + 1).filter((k) => !have.has(`post-${b.id}-${k}.jpg`));
-      const out: any = { id: b.id, kind: b.kind, net: b.net, dry, urls };
+      // alt text per image (IG feed + carousel slides; Meta caps it at 1000 chars)
+      const alts: string[] = Array.isArray(b.alts) ? b.alts.slice(0, n).map((a: unknown) => String(a ?? '').slice(0, 1000)) : [];
+      const out: any = { id: b.id, kind: b.kind, net: b.net, dry, urls, alts: alts.length };
       if (missing.length) return j({ ...out, error: 'images not uploaded', missing }, 400);
       if (dry) return j(out);
       await env.SOCIAL_TMP.put(marker, new Date().toISOString());   // before posting: a retry must not double-post
       try {
         if (b.net === 'ig') {
-          const mid = b.kind === 'carousel' ? await igCarousel(env, urls, b.caption) : await igPublish(env, urls[0], b.caption || '', b.kind === 'story');
+          const mid = b.kind === 'carousel' ? await igCarousel(env, urls, b.caption, alts) : await igPublish(env, urls[0], b.caption || '', b.kind === 'story', alts[0] || '');
           out.ig = { id: mid, permalink: b.kind === 'story' ? null : await igPermalink(env, mid) };
         } else if (b.kind === 'story') {
           await fbStory(env, urls[0]); out.fb = 'story ok';

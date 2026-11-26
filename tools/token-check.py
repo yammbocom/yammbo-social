@@ -23,7 +23,7 @@ def say(text):
 fix = 'Para renovarlo: Explorador de la API Graph → app Yammbo Bot → generar token de usuario → mandármelo (5 min).'
 try:
     q = urllib.parse.urlencode({'input_token': pt, 'access_token': app['META_APP_ID'] + '|' + app['META_APP_SECRET']})
-    d = json.load(urllib.request.urlopen('https://graph.facebook.com/v21.0/debug_token?' + q, timeout=30))['data']
+    d = json.load(urllib.request.urlopen('https://graph.facebook.com/v26.0/debug_token?' + q, timeout=30))['data']
 except Exception as e:
     say(f'🟠 No pude comprobar el token de Meta del publicador: {type(e).__name__}. Reviso mañana.'); raise SystemExit(1)
 left = (dt.datetime.fromtimestamp(d['data_access_expires_at'], dt.timezone.utc) - dt.datetime.now(dt.timezone.utc)).days if d.get('data_access_expires_at') else None

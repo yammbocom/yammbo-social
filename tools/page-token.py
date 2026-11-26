@@ -10,7 +10,7 @@ GET /{user-id}/accounts, whose Page tokens have no expiration date.
 """
 import json, os, sys, urllib.error, urllib.parse, urllib.request
 
-G = 'https://graph.facebook.com/v21.0'
+G = 'https://graph.facebook.com/v26.0'
 SECRETS = os.path.expanduser('~/.secrets')
 
 
